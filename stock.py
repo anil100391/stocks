@@ -1,5 +1,4 @@
 import genericpath
-from stock import *
 import csv
 
 
@@ -48,35 +47,183 @@ def coherence(left: str, right: str) -> float:
 
 #################################################################################
 #################################################################################
-class Stock:
+class StockInfo:
 
-    symbolToName: dict[str, str] = {}
-    nameToSymbol: dict[FuzzyStr, str] = {}
-
-    def __init__(self, symbol: str, name=None) -> None:
+    def __init__(self, symbol: str, isincode: str, name: str, sector: str) -> None:
         self.symbol = symbol
-        self.name = name if name else self.symbolToName.get(self.symbol)
+        self.isincode = isincode
+        self.name = name
+        self.sector = sector
 
     def __repr__(self) -> str:
-        if not self.name:
-            raise RuntimeWarning("unknown name")
         return self.name
+
+
+#################################################################################
+#################################################################################
+class Stock:
+
+    symbolToStockInfo: dict[str, StockInfo] = {}
+    nameToSymbol: dict[FuzzyStr, str] = {}
+    isinCodeToSymbol: dict[str, str] = {}
+
+    def __init__(self, symbol: str, symbolInfo=None):
+        self.symbol = symbol
+        self.info = symbolInfo if symbolInfo else Stock.symbolToStockInfo.get(symbol)
+
+    def __repr__(self) -> str:
+        return str(self.info)
 
 
 #################################################################################
 #################################################################################
 def PopulateStocks():
 
-    with open("EQUITY_L.csv", newline="\n") as f:
+    with open("data/EQUITY_L.csv", newline="\n") as f:
         reader = csv.DictReader(f, delimiter=",")
         for row in reader:
             symbol = row.get("SYMBOL")
             companyName = row.get("NAME OF COMPANY")
-            if not symbol or not companyName:
+            isinCode = row.get("ISIN NUMBER")
+            sector = "unknown"
+            if not symbol or not companyName or not isinCode:
                 continue
 
-            Stock.symbolToName[symbol] = companyName
+            if Stock.symbolToStockInfo.get(symbol):
+                continue
+
+            Stock.symbolToStockInfo[symbol] = StockInfo(
+                symbol, isinCode, companyName, sector
+            )
             Stock.nameToSymbol[FuzzyStr(companyName)] = symbol
+            Stock.isinCodeToSymbol[isinCode] = symbol
+
+
+#################################################################################
+#################################################################################
+SECTOR_FILES = {
+    "auto": ["data/ind_niftyautolist.csv"],
+    "consumer durables": ["data/ind_niftyconsumerdurableslist.csv"],
+    "finance": [
+        "data/ind_niftyfinancelist.csv",
+        "data/ind_niftyfinancialservices25-50list.csv",
+        "data/ind_niftymidsmallfinancailservice_list.csv",
+        "data/ind_niftybanklist.csv",
+        "data/ind_nifty_privatebanklist.csv",
+        "data/ind_niftypsubanklist.csv",
+    ],
+    "fmcg": ["data/ind_niftyfmcglist.csv"],
+    "it": ["data/ind_niftyitlist.csv", "data/ind_niftymidsmallitAndtelecom_list.csv"],
+    "healthcare": [
+        "data/ind_niftyhealthcarelist.csv",
+        "data/ind_niftymidsmallhealthcare_list.csv",
+        "data/ind_niftypharmalist.csv",
+    ],
+    "media": ["data/ind_niftymedialist.csv"],
+    "metal": ["data/ind_niftymetallist.csv"],
+    "oil and gas": ["data/ind_niftyoilgaslist.csv"],
+    "reality": ["data/ind_niftyrealtylist.csv"],
+    "services": [],
+    "infrastructure": [],
+    "chemicals": [],
+    "textiles": [],
+    "unknown": [],
+}
+
+#################################################################################
+#################################################################################
+SECTORS = [sector for sector in SECTOR_FILES]
+
+
+#################################################################################
+#################################################################################
+def PopulateSectorStocks():
+
+    for sector in SECTORS:
+        for sectorFile in SECTOR_FILES[sector]:
+            PopulateStocksFromSector(sector, sectorFile)
+
+
+#################################################################################
+#################################################################################
+def PopulateStocksFromSector(sector: str, sectorFile: str):
+
+    with open(sectorFile, newline="\n") as f:
+        reader = csv.DictReader(f, delimiter=",")
+        for row in reader:
+            symbol = row.get("Symbol")
+            companyName = row.get("Company Name")
+            isinCode = row.get("ISIN Code")
+            if not symbol or not companyName or not isinCode:
+                print("Invalid Data: ", symbol, companyName, isinCode)
+                continue
+
+            existingStock = Stock.symbolToStockInfo.get(symbol)
+            if existingStock:
+                continue
+
+            Stock.symbolToStockInfo[symbol] = StockInfo(
+                symbol, isinCode, companyName, sector
+            )
+            Stock.nameToSymbol[FuzzyStr(companyName)] = symbol
+            Stock.isinCodeToSymbol[isinCode] = symbol
+
+
+#################################################################################
+#################################################################################
+def PopulateNiftyTotalStocks():
+
+    industriesToSector = {
+        "Consumer Services": "services",
+        "Services": "services",
+        "Consumer Durables": "consumer durables",
+        "Construction": "infrastructure",
+        "Healthcare": "healthcare",
+        "Power": "oil and gas",
+        "Metals & Mining": "metal",
+        "Construction Materials": "infrastructure",
+        "Financial Services": "finance",
+        "Diversified": "unknown",
+        "Telecommunication": "it",
+        "Fast Moving Consumer Goods": "fmcg",
+        "Capital Goods": "unknown",
+        "Forest Materials": "unknown",
+        "Automobile and Auto Components": "auto",
+        "Utilities": "unknown",
+        "Information Technology": "it",
+        "Oil Gas & Consumable Fuels": "oil and gas",
+        "Chemicals": "chemicals",
+        "Realty": "reality",
+        "Textiles": "textiles",
+        "Media Entertainment & Publication": "media",
+    }
+    with open("data/ind_niftytotalmarket_list.csv", newline="\n") as f:
+        reader = csv.DictReader(f, delimiter=",")
+        for row in reader:
+            symbol = row.get("Symbol")
+            companyName = row.get("Company Name")
+            isinCode = row.get("ISIN Code")
+            if not symbol or not companyName or not isinCode:
+                print("Invalid Data: ", symbol, companyName, isinCode)
+                continue
+
+            existingStock = Stock.symbolToStockInfo.get(symbol)
+            if existingStock:
+                continue
+
+            industry = row.get("Industry")
+            sector = industriesToSector.get(industry) if industry else "unknown"
+            if not sector:
+                sector = "unknown"
+
+            if not sector in SECTORS:
+                print("Invalid Sector: ", sector, symbol, companyName, isinCode)
+            assert sector in SECTORS
+            Stock.symbolToStockInfo[symbol] = StockInfo(
+                symbol, isinCode, companyName, sector
+            )
+            Stock.nameToSymbol[FuzzyStr(companyName)] = symbol
+            Stock.isinCodeToSymbol[isinCode] = symbol
 
 
 #################################################################################
@@ -96,14 +243,24 @@ def CreateStockFromName(name: str) -> Stock | None:
                     symbol = Stock.nameToSymbol[stockName]
 
     if symbol and notFound:
-        sname = Stock.symbolToName.get(symbol)
-        if sname:
-            print(sname, name, coherence(sname, name))
+        stockInfo = Stock.symbolToStockInfo.get(symbol)
+        if stockInfo:
+            print(stockInfo.name, name, coherence(stockInfo.name, name))
 
-    if not symbol:
-        print("NOT FOUND", name)
+    # if not symbol:
+    #     print("NOT FOUND", name)
 
     return Stock(symbol) if symbol else None
 
 
+#################################################################################
+#################################################################################
+def CreateStockFromIsinCode(isinCode: str) -> Stock | None:
+
+    symbol = Stock.isinCodeToSymbol.get(isinCode)
+    return Stock(symbol) if symbol else None
+
+
+PopulateSectorStocks()
+PopulateNiftyTotalStocks()
 PopulateStocks()
