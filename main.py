@@ -135,6 +135,8 @@ if __name__ == "__main__":
         _, function, *args = sys.argv
         function = globals()[function]
     except:
-        print("Usage: python try.py analyze [TRANSACTION_HOLDINGS_STATEMENT_PDF] [PAN]")
+        print(
+            "Usage: python main.py analyze [TRANSACTION_HOLDINGS_STATEMENT_PDF] [PAN]"
+        )
     else:
         function(*args)
