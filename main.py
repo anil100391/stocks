@@ -118,6 +118,9 @@ def analyze(pdf_file: str, pdf_credentials: str | None = None):
         sectorWiseCash[sector] += qty * rate
 
         cap = mcap(stock.info.marketcap)
+        if cap is "unknown":
+            print(stock.symbol)
+
         if cap not in marketCapWiseCash:
             marketCapWiseCash[cap] = 0
         marketCapWiseCash[cap] += qty * rate
