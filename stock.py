@@ -54,6 +54,7 @@ class StockInfo:
         self.isincode = isincode
         self.name = name
         self.sector = sector
+        self.marketcap = 0.0
 
     def __repr__(self) -> str:
         return self.name
@@ -228,6 +229,25 @@ def PopulateNiftyTotalStocks():
 
 #################################################################################
 #################################################################################
+def PopulateMarketCap():
+
+    with open("data/marketcap.csv", newline="\n") as f:
+        reader = csv.DictReader(f, delimiter=",")
+        for row in reader:
+            symbol = row.get("SYMBOL")
+            marketcap = row.get("MARKETCAP")
+            if not symbol or not marketcap:
+                continue
+
+            stockInfo = Stock.symbolToStockInfo.get(symbol)
+            if not stockInfo:
+                continue
+
+            stockInfo.marketcap = float(marketcap)
+
+
+#################################################################################
+#################################################################################
 def CreateStockFromName(name: str) -> Stock | None:
 
     symbol = Stock.nameToSymbol.get(FuzzyStr(name))
@@ -264,3 +284,4 @@ def CreateStockFromIsinCode(isinCode: str) -> Stock | None:
 PopulateSectorStocks()
 PopulateNiftyTotalStocks()
 PopulateStocks()
+PopulateMarketCap()

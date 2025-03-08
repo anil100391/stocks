@@ -93,15 +93,20 @@ def analyze(pdf_file: str, pdf_credentials: str | None = None):
             mystocks[i][2],
         )
 
-    print(
-        "---------------------------------------------------------------------------------"
-    )
-
-    print("Sector\t\t\tCash")
-    print(
-        "---------------------------------------------------------------------------------"
-    )
     sectorWiseCash: dict[str, float] = {}
+    marketCapWiseCash: dict[str, float] = {}
+
+    def mcap(marketCap):
+        if marketCap == 0:
+            return "unknown"
+
+        if marketCap < 5000:
+            return "smallcap"
+
+        if marketCap >= 5000 and marketCap < 20000:
+            return "midcap"
+
+        return "largecap"
 
     for i in range(len(mystocks)):
         stock = mystocks[i][0]
@@ -112,8 +117,32 @@ def analyze(pdf_file: str, pdf_credentials: str | None = None):
             sectorWiseCash[sector] = 0
         sectorWiseCash[sector] += qty * rate
 
+        cap = mcap(stock.info.marketcap)
+        if cap not in marketCapWiseCash:
+            marketCapWiseCash[cap] = 0
+        marketCapWiseCash[cap] += qty * rate
+
+    print(
+        "---------------------------------------------------------------------------------"
+    )
+
+    print("Sector\t\t\tCash")
+    print(
+        "---------------------------------------------------------------------------------"
+    )
     for k in sectorWiseCash:
         print("{0: <20}".format(k), ": ", sectorWiseCash[k])
+
+    print(
+        "---------------------------------------------------------------------------------"
+    )
+
+    print("MarketCap\t\tCash")
+    print(
+        "---------------------------------------------------------------------------------"
+    )
+    for k in marketCapWiseCash:
+        print("{0: <20}".format(k), ": ", marketCapWiseCash[k])
 
     print(
         "---------------------------------------------------------------------------------"
@@ -123,8 +152,8 @@ def analyze(pdf_file: str, pdf_credentials: str | None = None):
 
     values = []
     labels = []
-    for k in sectorWiseCash:
-        values.append(sectorWiseCash[k])
+    for k in marketCapWiseCash:
+        values.append(marketCapWiseCash[k])
         labels.append(k)
     plt.pie(values, labels=labels, autopct="%1.1f%%")
     plt.show()
