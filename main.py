@@ -118,7 +118,7 @@ def analyze(pdf_file: str, pdf_credentials: str | None = None):
         sectorWiseCash[sector] += qty * rate
 
         cap = mcap(stock.info.marketcap)
-        if cap is "unknown":
+        if cap == "unknown":
             print(stock.symbol)
 
         if cap not in marketCapWiseCash:
@@ -158,7 +158,12 @@ def analyze(pdf_file: str, pdf_credentials: str | None = None):
     for k in marketCapWiseCash:
         values.append(marketCapWiseCash[k])
         labels.append(k)
-    plt.pie(values, labels=labels, autopct="%1.1f%%")
+
+    f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+    ax1.pie(
+        marketCapWiseCash.values(), labels=marketCapWiseCash.keys(), autopct="%1.1f%%"
+    )
+    ax2.pie(sectorWiseCash.values(), labels=sectorWiseCash.keys(), autopct="%1.1f%%")
     plt.show()
 
 

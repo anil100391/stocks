@@ -1,4 +1,3 @@
-import genericpath
 import csv
 
 
